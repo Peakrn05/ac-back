@@ -18,6 +18,8 @@ DATABASE_URL=postgres://user:password@localhost:5432/ac_cleaning
 FRONTEND_ORIGIN=http://localhost:3000,http://localhost:3001
 ```
 
+If you do not use `DATABASE_URL`, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `DB_DATABASE` instead.
+
 3. Start the backend:
 
 ```bash
