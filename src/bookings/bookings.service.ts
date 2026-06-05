@@ -8,11 +8,19 @@ import { Service } from "../entities/service.entity";
 import { TimeSlot } from "../entities/time-slot.entity";
 import { User } from "../entities/user.entity";
 import { CreateBookingDto } from "./dto/create-booking.dto";
+import { UpdateBookingScheduleDto } from "./dto/update-booking-schedule.dto";
 
 interface BookingFilters {
   status?: BookingStatus | "all";
   date?: string;
   userId?: string;
+}
+
+function btuMultiplier(btu: number) {
+  if (btu < 5000) return 1;
+  if (btu <= 12000) return 1.15;
+  if (btu <= 24000) return 1.3;
+  return 1.5;
 }
 
 @Injectable()
@@ -60,7 +68,9 @@ export class BookingsService {
     const user = dto.userId ? await this.users.findOne({ where: { id: dto.userId } }) : null;
     if (dto.userId && !user) throw new BadRequestException("Invalid user.");
 
-    const total = Number(service.price) * dto.units;
+    const btu = dto.btu ?? 5000;
+    const total = Number((Number(service.price) * dto.units * btuMultiplier(btu)).toFixed(2));
+    const notes = [dto.notes?.trim(), `BTU: ${btu}`].filter(Boolean).join("\n");
     const booking = this.bookings.create({
       id: randomUUID(),
       userId: user?.id ?? null,
@@ -72,7 +82,7 @@ export class BookingsService {
       scheduledDate: dto.scheduledDate.slice(0, 10),
       timeSlot: normalizedTimeSlot,
       address: dto.address.trim(),
-      notes: dto.notes?.trim() ?? "",
+      notes,
       status: "confirmed",
       totalAmount: total,
     });
@@ -102,6 +112,23 @@ export class BookingsService {
     return this.getOne(id);
   }
 
+  async updateSchedule(id: string, dto: UpdateBookingScheduleDto) {
+    const booking = await this.bookings.findOne({ where: { id } });
+    if (!booking) throw new NotFoundException("Booking not found.");
+    if (booking.status === "completed" || booking.status === "cancelled") {
+      throw new BadRequestException("Completed or cancelled bookings cannot be postponed.");
+    }
+
+    const normalizedTimeSlot = this.normalizeTimeSlot(dto.timeSlot);
+    const slot = await this.timeSlots.findOne({ where: { slot: normalizedTimeSlot, isActive: true } });
+    if (!slot) throw new BadRequestException("Invalid time slot.");
+
+    booking.scheduledDate = dto.scheduledDate.slice(0, 10);
+    booking.timeSlot = normalizedTimeSlot;
+    await this.bookings.save(booking);
+    return this.getOne(id);
+  }
+
   private normalizeTimeSlot(slot: string) {
     if (/^\d{2}:\d{2}$/.test(slot)) return `${slot}:00`;
     if (/^\d{2}:\d{2}:\d{2}$/.test(slot)) return slot;
@@ -121,7 +148,8 @@ export class BookingsService {
       date: booking.scheduledDate,
       timeSlot: booking.timeSlot.slice(0, 5),
       address: booking.address,
-      notes: booking.notes,
+      notes: this.cleanNotes(booking.notes),
+      btu: this.extractBtu(booking.notes),
       status: booking.status,
       total: booking.totalAmount,
       createdAt: booking.createdAt,
@@ -135,5 +163,18 @@ export class BookingsService {
           }
         : null,
     };
+  }
+
+  private extractBtu(notes: string) {
+    const match = notes.match(/BTU:\s*(\d+)/i);
+    return match ? Number(match[1]) : null;
+  }
+
+  private cleanNotes(notes: string) {
+    return notes
+      .split(/\r?\n/)
+      .filter((line) => !/^BTU:\s*\d+/i.test(line.trim()))
+      .join("\n")
+      .trim();
   }
 }

@@ -40,5 +40,8 @@ npm run start:dev
 - `GET /bookings/:id`
 - `POST /bookings`
 - `PATCH /bookings/:id/status`
+- `PATCH /bookings/:id/schedule`
 
 The TypeORM config uses `synchronize: false`, so it will not rewrite your existing database schema.
+
+`POST /bookings` accepts optional `btu`. Pricing uses the base service price below 5,000 BTU and applies a size multiplier for larger units.

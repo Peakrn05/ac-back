@@ -25,6 +25,12 @@ export class CreateBookingDto {
   @Max(10)
   units: number;
 
+  @IsOptional()
+  @IsInt()
+  @Min(1000)
+  @Max(60000)
+  btu?: number;
+
   @IsDateString()
   scheduledDate: string;
 

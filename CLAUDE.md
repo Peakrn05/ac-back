@@ -72,6 +72,7 @@ npm run start:dev
 - `GET /bookings/:id`
 - `POST /bookings`
 - `PATCH /bookings/:id/status`
+- `PATCH /bookings/:id/schedule`
 
 ## Database Notes
 
@@ -86,3 +87,5 @@ Entity mappings expect these core tables:
 - `payments`
 
 If the existing database uses different table or column names, update the TypeORM entity decorators instead of changing frontend contracts.
+
+BTU pricing is currently calculated from request data and persisted through `total_amount`. The BTU value is stored in notes for compatibility with the existing database schema, so do not add a required `btu` entity column unless the database is migrated first.
