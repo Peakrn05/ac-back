@@ -148,8 +148,8 @@ export class BookingsService {
       date: booking.scheduledDate,
       timeSlot: booking.timeSlot.slice(0, 5),
       address: booking.address,
-      notes: this.cleanNotes(booking.notes),
-      btu: this.extractBtu(booking.notes),
+      notes: this.cleanNotes(booking.notes ?? null),
+      btu: this.extractBtu(booking.notes ?? null),
       status: booking.status,
       total: booking.totalAmount,
       createdAt: booking.createdAt,
@@ -165,12 +165,14 @@ export class BookingsService {
     };
   }
 
-  private extractBtu(notes: string) {
+  private extractBtu(notes: string | null) {
+    if (!notes) return null;
     const match = notes.match(/BTU:\s*(\d+)/i);
     return match ? Number(match[1]) : null;
   }
 
-  private cleanNotes(notes: string) {
+  private cleanNotes(notes: string | null) {
+    if (!notes) return "";
     return notes
       .split(/\r?\n/)
       .filter((line) => !/^BTU:\s*\d+/i.test(line.trim()))
